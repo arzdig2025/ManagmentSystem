@@ -1,0 +1,2672 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas Course Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+    <style>
+        .theme-1 { --primary: #3b82f6; --secondary: #1e40af; --accent: #60a5fa; }
+        .theme-2 { --primary: #10b981; --secondary: #047857; --accent: #34d399; }
+        .theme-3 { --primary: #f59e0b; --secondary: #d97706; --accent: #fbbf24; }
+        .theme-4 { --primary: #ef4444; --secondary: #dc2626; --accent: #f87171; }
+        .theme-5 { --primary: #8b5cf6; --secondary: #7c3aed; --accent: #a78bfa; }
+        .theme-6 { --primary: #06b6d4; --secondary: #0891b2; --accent: #22d3ee; }
+        .theme-7 { --primary: #f97316; --secondary: #ea580c; --accent: #fb923c; }
+        .theme-8 { --primary: #ec4899; --secondary: #db2777; --accent: #f472b6; }
+        .theme-9 { --primary: #6366f1; --secondary: #4f46e5; --accent: #818cf8; }
+        .theme-10 { --primary: #14b8a6; --secondary: #0f766e; --accent: #2dd4bf; }
+
+        .gradient-bg { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .hover-lift { transition: transform 0.3s ease; }
+        .hover-lift:hover { transform: translateY(-5px); }
+        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        
+        .progress-bar { background: linear-gradient(90deg, var(--accent) 0%, var(--primary) 100%); }
+        
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide { animation: slideIn 0.5s ease-out; }
+        
+        .status-paid { background: #10b981; color: white; }
+        .status-partial { background: #f59e0b; color: white; }
+        .status-pending { background: #ef4444; color: white; }
+        
+        .grade-a { background: #10b981; }
+        .grade-b { background: #3b82f6; }
+        .grade-c { background: #f59e0b; }
+        .grade-d { background: #ef4444; }
+        .grade-f { background: #6b7280; }
+    </style>
+</head>
+<body class="theme-1 bg-gray-50 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen gradient-bg flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl card-shadow p-8 w-full max-w-md animate-slide">
+            <div class="text-center mb-8">
+                <h1 id="systemTitle" class="text-3xl font-bold text-gray-800 mb-2">Atlas Course Management</h1>
+                <p class="text-gray-600">Advanced Educational Platform</p>
+            </div>
+            
+            <div class="space-y-4">
+                <button onclick="showStudentLogin()" class="w-full gradient-bg text-white py-3 rounded-lg hover-lift font-semibold">
+                    👨‍🎓 Student Login
+                </button>
+                <button onclick="showStudentRegister()" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg hover-lift font-semibold">
+                    📝 Register New Student
+                </button>
+                <button onclick="showAdminLogin()" class="w-full bg-gray-800 text-white py-3 rounded-lg hover-lift font-semibold">
+                    👨‍💼 Admin Access
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Login Modal -->
+    <div id="studentLoginModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md mx-4">
+            <h2 class="text-2xl font-bold mb-6 text-center">Student Login</h2>
+            <form onsubmit="studentLogin(event)">
+                <div class="space-y-4">
+                    <input type="text" id="studentId" placeholder="Student ID (4 digits)" class="w-full p-3 border rounded-lg" maxlength="4" required>
+                    <input type="password" id="studentPassword" placeholder="Password" class="w-full p-3 border rounded-lg" required>
+                    <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold">Login</button>
+                    <button type="button" onclick="closeModal('studentLoginModal')" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Registration Modal -->
+    <div id="studentRegisterModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md mx-4 max-h-96 overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6 text-center">Register New Student</h2>
+            <form onsubmit="registerStudent(event)">
+                <div class="space-y-4">
+                    <input type="text" id="regFullName" placeholder="Full Name" class="w-full p-3 border rounded-lg" required>
+                    <input type="email" id="regEmail" placeholder="Email" class="w-full p-3 border rounded-lg" required>
+                    <input type="tel" id="regPhone" placeholder="Phone Number" class="w-full p-3 border rounded-lg" required>
+                    <input type="date" id="regBirthDate" placeholder="Birth Date" class="w-full p-3 border rounded-lg" required>
+                    <textarea id="regAddress" placeholder="Address" class="w-full p-3 border rounded-lg" rows="3" required></textarea>
+                    <input type="password" id="regPassword" placeholder="Create Password" class="w-full p-3 border rounded-lg" required>
+                    <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold">Register</button>
+                    <button type="button" onclick="closeModal('studentRegisterModal')" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="adminLoginModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md mx-4">
+            <h2 class="text-2xl font-bold mb-6 text-center">Admin Login</h2>
+            <form onsubmit="adminLogin(event)">
+                <div class="space-y-4">
+                    <input type="text" id="adminUsername" placeholder="Username" class="w-full p-3 border rounded-lg" required>
+                    <input type="password" id="adminPassword" placeholder="Password" class="w-full p-3 border rounded-lg" required>
+                    <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold">Login</button>
+                    <button type="button" onclick="closeModal('adminLoginModal')" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Dashboard -->
+    <div id="studentDashboard" class="hidden min-h-screen bg-gray-50">
+        <!-- Header -->
+        <header class="gradient-bg text-white p-4 shadow-lg">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 id="dashboardTitle" class="text-2xl font-bold">Atlas Student Portal</h1>
+                <div class="flex items-center space-x-4">
+                    <span id="studentWelcome" class="font-semibold"></span>
+                    <button onclick="logout()" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover-lift">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Student Dashboard Content -->
+        <div class="container mx-auto p-6">
+            <!-- Profile Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="lg:col-span-2 bg-white rounded-2xl card-shadow p-6">
+                    <h2 class="text-2xl font-bold mb-4">📌 Profile Information</h2>
+                    
+                    <!-- Photo Upload Section -->
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-3">Profile Photo (Optional)</h3>
+                        <div class="flex items-center space-x-4">
+                            <div id="photoPreview" class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                                <span class="text-gray-500 text-xs text-center">No Photo</span>
+                            </div>
+                            <div>
+                                <input type="file" id="photoUpload" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                                <button onclick="document.getElementById('photoUpload').click()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover-lift text-sm">
+                                    📷 Upload Photo
+                                </button>
+                                <button onclick="removePhoto()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover-lift text-sm ml-2">
+                                    🗑️ Remove
+                                </button>
+                                <p class="text-xs text-gray-500 mt-1">JPG, PNG, GIF up to 2MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="studentProfile" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Profile content will be populated by JavaScript -->
+                    </div>
+                    <button onclick="exportStudentPDF()" class="mt-4 gradient-bg text-white px-6 py-2 rounded-lg hover-lift">
+                        📄 Export Profile PDF
+                    </button>
+                </div>
+                
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <h3 class="text-xl font-bold mb-4">📊 Academic Summary</h3>
+                    <div id="academicSummary">
+                        <!-- Academic summary will be populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Courses Section -->
+            <div class="bg-white rounded-2xl card-shadow p-6 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">📚 My Courses</h2>
+                    <button onclick="showAvailableCourses()" class="gradient-bg text-white px-6 py-2 rounded-lg hover-lift">
+                        ➕ Enroll in Course
+                    </button>
+                </div>
+                <div id="studentCourses" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Courses will be populated -->
+                </div>
+            </div>
+
+            <!-- Payments Section -->
+            <div class="bg-white rounded-2xl card-shadow p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-6">💳 Payment Status</h2>
+                <div id="paymentStatus">
+                    <!-- Payment status will be populated -->
+                </div>
+            </div>
+
+            <!-- Grades Section -->
+            <div class="bg-white rounded-2xl card-shadow p-6">
+                <h2 class="text-2xl font-bold mb-6">🎯 Grades & Performance</h2>
+                <div id="gradesSection">
+                    <!-- Grades will be populated -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden min-h-screen bg-gray-50">
+        <!-- Admin Header -->
+        <header class="gradient-bg text-white p-4 shadow-lg">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 id="adminDashboardTitle" class="text-2xl font-bold">Atlas Admin Panel</h1>
+                <div class="flex items-center space-x-4">
+                    <button onclick="showAdminSettings()" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover-lift">⚙️ Settings</button>
+                    <button onclick="logout()" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover-lift">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Admin Navigation -->
+        <nav class="bg-white shadow-md">
+            <div class="container mx-auto px-6">
+                <div class="flex space-x-8">
+                    <button onclick="showAdminSection('overview')" class="admin-nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-500 transition-colors">📊 Overview</button>
+                    <button onclick="showAdminSection('students')" class="admin-nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-500 transition-colors">👥 Students</button>
+                    <button onclick="showAdminSection('courses')" class="admin-nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-500 transition-colors">📚 Courses</button>
+                    <button onclick="showAdminSection('payments')" class="admin-nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-500 transition-colors">💳 Payments</button>
+                    <button onclick="showAdminSection('grades')" class="admin-nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-500 transition-colors">🎯 Grades</button>
+                    <button onclick="showAdminSection('reports')" class="admin-nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-500 transition-colors">📈 Reports</button>
+                    <button onclick="showAdminSection('data')" class="admin-nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-500 transition-colors">🔧 Data</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Admin Content -->
+        <div class="container mx-auto p-6">
+            <!-- Overview Section -->
+            <div id="adminOverview" class="admin-section">
+                <h2 class="text-3xl font-bold mb-8">📊 System Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl card-shadow p-6 text-center">
+                        <div class="text-3xl mb-2">👥</div>
+                        <div class="text-2xl font-bold text-blue-600" id="totalStudents">0</div>
+                        <div class="text-gray-600">Total Students</div>
+                    </div>
+                    <div class="bg-white rounded-2xl card-shadow p-6 text-center">
+                        <div class="text-3xl mb-2">📚</div>
+                        <div class="text-2xl font-bold text-green-600" id="activeCourses">0</div>
+                        <div class="text-gray-600">Active Courses</div>
+                    </div>
+                    <div class="bg-white rounded-2xl card-shadow p-6 text-center">
+                        <div class="text-3xl mb-2">💰</div>
+                        <div class="text-2xl font-bold text-yellow-600" id="totalRevenue">0 AFN</div>
+                        <div class="text-gray-600">Total Revenue</div>
+                    </div>
+                    <div class="bg-white rounded-2xl card-shadow p-6 text-center">
+                        <div class="text-3xl mb-2">⏳</div>
+                        <div class="text-2xl font-bold text-red-600" id="pendingPayments">0</div>
+                        <div class="text-gray-600">Pending Payments</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Section -->
+            <div id="adminStudents" class="admin-section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold">👥 Student Management</h2>
+                    <button onclick="showAddStudentModal()" class="gradient-bg text-white px-6 py-3 rounded-lg hover-lift">➕ Add Student</button>
+                </div>
+                
+                <!-- Search and Filter -->
+                <div class="bg-white rounded-2xl card-shadow p-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="studentSearch" placeholder="Search by ID, Name, Email..." class="p-3 border rounded-lg" onkeyup="filterStudents()">
+                        <select id="courseFilter" class="p-3 border rounded-lg" onchange="filterStudents()">
+                            <option value="">All Courses</option>
+                        </select>
+                        <select id="paymentFilter" class="p-3 border rounded-lg" onchange="filterStudents()">
+                            <option value="">All Payment Status</option>
+                            <option value="completed">Completed</option>
+                            <option value="partial">Partial</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                        <select id="gradeFilter" class="p-3 border rounded-lg" onchange="filterStudents()">
+                            <option value="">All Grades</option>
+                            <option value="A">A Grade</option>
+                            <option value="B">B Grade</option>
+                            <option value="C">C Grade</option>
+                            <option value="D">D Grade</option>
+                            <option value="F">F Grade</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Students List -->
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <div id="studentsList">
+                        <!-- Students will be populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Courses Section -->
+            <div id="adminCourses" class="admin-section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold">📚 Course Management</h2>
+                    <button onclick="showAddCourseModal()" class="gradient-bg text-white px-6 py-3 rounded-lg hover-lift">➕ Add Course</button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="coursesList">
+                    <!-- Courses will be populated -->
+                </div>
+            </div>
+
+            <!-- Payments Section -->
+            <div id="adminPayments" class="admin-section hidden">
+                <h2 class="text-3xl font-bold mb-6">💳 Payment Management</h2>
+                
+                <!-- Students with Payment Status -->
+                <div class="bg-white rounded-2xl card-shadow p-6 mb-6">
+                    <h3 class="text-xl font-bold mb-4">Students Payment Overview</h3>
+                    <div id="studentsPaymentList">
+                        <!-- Students payment overview will be populated -->
+                    </div>
+                </div>
+
+                <!-- Payment History -->
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <h3 class="text-xl font-bold mb-4">Payment History</h3>
+                    <div id="paymentsList">
+                        <!-- Payments will be populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grades Section -->
+            <div id="adminGrades" class="admin-section hidden">
+                <h2 class="text-3xl font-bold mb-6">🎯 Grade Management</h2>
+                
+                <!-- Students for Grading -->
+                <div class="bg-white rounded-2xl card-shadow p-6 mb-6">
+                    <h3 class="text-xl font-bold mb-4">Students & Courses for Grading</h3>
+                    <div id="studentsGradingList">
+                        <!-- Students for grading will be populated -->
+                    </div>
+                </div>
+
+                <!-- Grades List -->
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <h3 class="text-xl font-bold mb-4">Recorded Grades</h3>
+                    <div id="gradesList">
+                        <!-- Grades will be populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="adminReports" class="admin-section hidden">
+                <h2 class="text-3xl font-bold mb-6">📈 Reports & Analytics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-2xl card-shadow p-6">
+                        <h3 class="text-xl font-bold mb-4">📊 Report Types</h3>
+                        <div class="space-y-3">
+                            <button onclick="generateReport('enrollment')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">📝 Enrollment Report</button>
+                            <button onclick="generateReport('revenue')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">💰 Revenue Analysis</button>
+                            <button onclick="generateReport('performance')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">📈 Course Performance</button>
+                            <button onclick="generateReport('student-progress')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">🎓 Student Progress</button>
+                            <button onclick="generateReport('financial')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">💳 Financial Report</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl card-shadow p-6">
+                        <h3 class="text-xl font-bold mb-4">📅 Time Range</h3>
+                        <div class="space-y-3">
+                            <button onclick="setReportRange('week')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">This Week</button>
+                            <button onclick="setReportRange('month')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">This Month</button>
+                            <button onclick="setReportRange('quarter')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">This Quarter</button>
+                            <button onclick="setReportRange('year')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">This Year</button>
+                            <button onclick="setReportRange('all')" class="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100">All Time</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generated Reports Display -->
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <h3 class="text-xl font-bold mb-4">Generated Reports</h3>
+                    <div id="generatedReports">
+                        <p class="text-gray-500 text-center">No reports generated yet. Select a report type above.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Management Section -->
+            <div id="adminData" class="admin-section hidden">
+                <h2 class="text-3xl font-bold mb-6">🔧 Data Management</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl card-shadow p-6">
+                        <h3 class="text-xl font-bold mb-4">📤 Export Data</h3>
+                        <div class="space-y-3">
+                            <button onclick="exportData('students', 'pdf')" class="w-full gradient-bg text-white p-3 rounded-lg hover-lift">Export Students (PDF)</button>
+                            <button onclick="exportData('students', 'json')" class="w-full bg-gray-600 text-white p-3 rounded-lg hover-lift">Export Students (JSON)</button>
+                            <button onclick="exportData('courses', 'pdf')" class="w-full gradient-bg text-white p-3 rounded-lg hover-lift">Export Courses (PDF)</button>
+                            <button onclick="exportData('courses', 'json')" class="w-full bg-gray-600 text-white p-3 rounded-lg hover-lift">Export Courses (JSON)</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl card-shadow p-6">
+                        <h3 class="text-xl font-bold mb-4">📥 Import & Backup</h3>
+                        <div class="space-y-3">
+                            <input type="file" id="importFile" accept=".json" class="w-full p-3 border rounded-lg">
+                            <button onclick="importData()" class="w-full bg-green-600 text-white p-3 rounded-lg hover-lift">Import Data</button>
+                            <button onclick="createBackup()" class="w-full bg-blue-600 text-white p-3 rounded-lg hover-lift">Create Backup</button>
+                            <button onclick="showResetConfirm()" class="w-full bg-red-600 text-white p-3 rounded-lg hover-lift">Reset All Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Settings Modal -->
+    <div id="adminSettingsModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-2xl mx-4 max-h-96 overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6">⚙️ System Settings</h2>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium mb-2">System Title</label>
+                    <input type="text" id="settingsSystemTitle" class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Admin Username</label>
+                    <input type="text" id="settingsUsername" class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Admin Password</label>
+                    <input type="password" id="settingsPassword" class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Theme</label>
+                    <select id="themeSelector" class="w-full p-3 border rounded-lg">
+                        <option value="theme-1">Blue Ocean</option>
+                        <option value="theme-2">Emerald Forest</option>
+                        <option value="theme-3">Golden Sunset</option>
+                        <option value="theme-4">Ruby Fire</option>
+                        <option value="theme-5">Purple Galaxy</option>
+                        <option value="theme-6">Cyan Wave</option>
+                        <option value="theme-7">Orange Burst</option>
+                        <option value="theme-8">Pink Blossom</option>
+                        <option value="theme-9">Indigo Night</option>
+                        <option value="theme-10">Teal Breeze</option>
+                    </select>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="saveAdminSettings()" class="flex-1 gradient-bg text-white py-3 rounded-lg font-semibold">Save Settings</button>
+                    <button onclick="closeModal('adminSettingsModal')" class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div id="addCourseModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-2xl mx-4 max-h-96 overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6">➕ Add New Course</h2>
+            <form onsubmit="addCourse(event)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="courseName" placeholder="Course Name" class="p-3 border rounded-lg" required>
+                    <input type="text" id="courseInstructor" placeholder="Instructor" class="p-3 border rounded-lg" required>
+                    <input type="number" id="courseCapacity" placeholder="Capacity" class="p-3 border rounded-lg" required>
+                    <input type="number" id="courseFee" placeholder="Fee (AFN)" class="p-3 border rounded-lg" required>
+                    <input type="text" id="courseSchedule" placeholder="Schedule" class="p-3 border rounded-lg" required>
+                    <input type="number" id="courseDuration" placeholder="Duration (weeks)" class="p-3 border rounded-lg" required>
+                </div>
+                <textarea id="courseDescription" placeholder="Course Description" class="w-full p-3 border rounded-lg mt-4" rows="3" required></textarea>
+                <div class="flex space-x-4 mt-6">
+                    <button type="submit" class="flex-1 gradient-bg text-white py-3 rounded-lg font-semibold">Add Course</button>
+                    <button type="button" onclick="closeModal('addCourseModal')" class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Available Courses Modal -->
+    <div id="availableCoursesModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-4xl mx-4 max-h-96 overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6">📚 Available Courses</h2>
+            <div id="availableCoursesList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Available courses will be populated -->
+            </div>
+            <button onclick="closeModal('availableCoursesModal')" class="mt-6 w-full bg-gray-200 text-gray-800 py-3 rounded-lg">Close</button>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md mx-4">
+            <h2 class="text-2xl font-bold mb-6">💳 Record Payment</h2>
+            <form onsubmit="recordPayment(event)">
+                <div class="space-y-4">
+                    <input type="hidden" id="paymentStudentId">
+                    <input type="hidden" id="paymentCourseId">
+                    <div id="paymentStudentInfo" class="text-center mb-4 p-3 bg-gray-50 rounded-lg">
+                        <!-- Student and course info will be displayed here -->
+                    </div>
+                    <input type="number" id="paymentAmount" placeholder="Payment Amount (AFN)" class="w-full p-3 border rounded-lg" required>
+                    <select id="paymentMethod" class="w-full p-3 border rounded-lg" required>
+                        <option value="">Select Payment Method</option>
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="bank">Bank Transfer</option>
+                        <option value="online">Online</option>
+                        <option value="check">Check</option>
+                    </select>
+                    <textarea id="paymentNotes" placeholder="Payment Notes (Optional)" class="w-full p-3 border rounded-lg" rows="3"></textarea>
+                    <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold">Record Payment</button>
+                    <button type="button" onclick="closeModal('paymentModal')" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grade Modal -->
+    <div id="gradeModal" class="modal">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md mx-4">
+            <h2 class="text-2xl font-bold mb-6">🎯 Enter Grades</h2>
+            <form onsubmit="enterGrade(event)">
+                <div class="space-y-4">
+                    <input type="hidden" id="gradeStudentId">
+                    <input type="hidden" id="gradeCourseId">
+                    <div class="text-center mb-4">
+                        <span id="gradeStudentName" class="font-semibold"></span> - <span id="gradeCourseName" class="font-semibold"></span>
+                    </div>
+                    <input type="number" id="midtermGrade" placeholder="Midterm Grade (40%)" class="w-full p-3 border rounded-lg" min="0" max="100" required>
+                    <input type="number" id="finalGrade" placeholder="Final Exam Grade (60%)" class="w-full p-3 border rounded-lg" min="0" max="100" required>
+                    <textarea id="instructorComment" placeholder="Instructor Comment" class="w-full p-3 border rounded-lg" rows="3"></textarea>
+                    <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold">Save Grades</button>
+                    <button type="button" onclick="closeModal('gradeModal')" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+    <script>
+        // Global Variables
+        let currentUser = null;
+        let currentTheme = 'theme-1';
+        let reportRange = 'month';
+        let editingStudentId = null;
+        let editingCourseId = null;
+        
+        // Data Storage
+        let systemData = {
+            settings: {
+                title: 'Atlas Course Management',
+                adminUsername: 'admin',
+                adminPassword: 'admin123',
+                theme: 'theme-1'
+            },
+            students: [],
+            courses: [],
+            payments: [],
+            grades: [],
+            enrollments: []
+        };
+
+        // Initialize System
+        function initSystem() {
+            loadData();
+            applyTheme();
+            updateSystemTitle();
+        }
+
+        // Data Management
+        function saveData() {
+            localStorage.setItem('atlasSystemData', JSON.stringify(systemData));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('atlasSystemData');
+            if (saved) {
+                systemData = JSON.parse(saved);
+            }
+        }
+
+        // Theme Management
+        function applyTheme() {
+            document.body.className = document.body.className.replace(/theme-\d+/, systemData.settings.theme);
+            currentTheme = systemData.settings.theme;
+        }
+
+        function updateSystemTitle() {
+            document.getElementById('systemTitle').textContent = systemData.settings.title;
+            document.getElementById('dashboardTitle').textContent = systemData.settings.title + ' - Student Portal';
+            document.getElementById('adminDashboardTitle').textContent = systemData.settings.title + ' - Admin Panel';
+        }
+
+        // Modal Management
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            // Reset form if it's the student registration modal
+            if (modalId === 'studentRegisterModal') {
+                resetStudentForm();
+            }
+            if (modalId === 'addCourseModal') {
+                resetCourseForm();
+            }
+        }
+
+        function resetStudentForm() {
+            document.getElementById('regFullName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regBirthDate').value = '';
+            document.getElementById('regAddress').value = '';
+            document.getElementById('regPassword').value = '';
+            editingStudentId = null;
+            
+            // Reset form behavior
+            const form = document.querySelector('#studentRegisterModal form');
+            form.onsubmit = registerStudent;
+        }
+
+        function resetCourseForm() {
+            document.getElementById('courseName').value = '';
+            document.getElementById('courseDescription').value = '';
+            document.getElementById('courseInstructor').value = '';
+            document.getElementById('courseSchedule').value = '';
+            document.getElementById('courseCapacity').value = '';
+            document.getElementById('courseFee').value = '';
+            document.getElementById('courseDuration').value = '';
+            editingCourseId = null;
+            
+            // Reset form behavior
+            const form = document.querySelector('#addCourseModal form');
+            form.onsubmit = addCourse;
+        }
+
+        // Authentication
+        function showStudentLogin() {
+            showModal('studentLoginModal');
+        }
+
+        function showStudentRegister() {
+            showModal('studentRegisterModal');
+        }
+
+        function showAdminLogin() {
+            showModal('adminLoginModal');
+        }
+
+        function studentLogin(event) {
+            event.preventDefault();
+            const studentId = document.getElementById('studentId').value;
+            const password = document.getElementById('studentPassword').value;
+            
+            const student = systemData.students.find(s => s.id === studentId && s.password === password);
+            if (student) {
+                currentUser = { type: 'student', data: student };
+                closeModal('studentLoginModal');
+                showStudentDashboard();
+                showMessage('Welcome back, ' + student.fullName + '!', 'success');
+            } else {
+                showMessage('Invalid Student ID or Password', 'error');
+            }
+        }
+
+        function registerStudent(event) {
+            event.preventDefault();
+            
+            if (editingStudentId) {
+                // Update existing student
+                const student = systemData.students.find(s => s.id === editingStudentId);
+                if (student) {
+                    student.fullName = document.getElementById('regFullName').value;
+                    student.email = document.getElementById('regEmail').value;
+                    student.phone = document.getElementById('regPhone').value;
+                    student.birthDate = document.getElementById('regBirthDate').value;
+                    student.address = document.getElementById('regAddress').value;
+                    student.password = document.getElementById('regPassword').value;
+                    
+                    saveData();
+                    closeModal('studentRegisterModal');
+                    if (currentUser && currentUser.type === 'admin') {
+                        loadAdminStudents();
+                    }
+                    showMessage('Student updated successfully!', 'success');
+                }
+            } else {
+                // Create new student
+                const studentId = generateStudentId();
+                const newStudent = {
+                    id: studentId,
+                    fullName: document.getElementById('regFullName').value,
+                    email: document.getElementById('regEmail').value,
+                    phone: document.getElementById('regPhone').value,
+                    birthDate: document.getElementById('regBirthDate').value,
+                    address: document.getElementById('regAddress').value,
+                    password: document.getElementById('regPassword').value,
+                    registrationDate: new Date().toISOString(),
+                    gpa: 0,
+                    coursesEnrolled: 0,
+                    photo: null
+                };
+                
+                systemData.students.push(newStudent);
+                saveData();
+                closeModal('studentRegisterModal');
+                
+                if (currentUser && currentUser.type === 'admin') {
+                    loadAdminStudents();
+                    updateAdminStats();
+                }
+                
+                showMessage(`Registration successful! Student ID: ${studentId}`, 'success');
+            }
+        }
+
+        function adminLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            if (username === systemData.settings.adminUsername && password === systemData.settings.adminPassword) {
+                currentUser = { type: 'admin' };
+                closeModal('adminLoginModal');
+                showAdminDashboard();
+                showMessage('Welcome to Admin Panel!', 'success');
+            } else {
+                showMessage('Invalid Admin Credentials', 'error');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('studentDashboard').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+            showMessage('Logged out successfully', 'success');
+        }
+
+        // Student Dashboard
+        function showStudentDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('studentDashboard').classList.remove('hidden');
+            document.getElementById('studentWelcome').textContent = `Welcome, ${currentUser.data.fullName}`;
+            loadStudentProfile();
+            loadStudentCourses();
+            loadStudentPayments();
+            loadStudentGrades();
+        }
+
+        function loadStudentProfile() {
+            const student = currentUser.data;
+            const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+            const grades = systemData.grades.filter(g => g.studentId === student.id);
+            
+            // Calculate GPA
+            let totalPoints = 0;
+            let totalCourses = grades.length;
+            grades.forEach(grade => {
+                totalPoints += calculateGPA(grade.finalGrade);
+            });
+            const gpa = totalCourses > 0 ? (totalPoints / totalCourses).toFixed(2) : '0.00';
+            
+            // Load photo preview
+            const photoPreview = document.getElementById('photoPreview');
+            if (student.photo) {
+                photoPreview.innerHTML = `<img src="${student.photo}" alt="Profile Photo" class="w-full h-full object-cover rounded-lg">`;
+            } else {
+                photoPreview.innerHTML = '<span class="text-gray-500 text-xs text-center">No Photo</span>';
+            }
+            
+            document.getElementById('studentProfile').innerHTML = `
+                <div class="space-y-2">
+                    <p><strong>Student ID:</strong> ${student.id}</p>
+                    <p><strong>Full Name:</strong> ${student.fullName}</p>
+                    <p><strong>Email:</strong> ${student.email}</p>
+                    <p><strong>Phone:</strong> ${student.phone}</p>
+                </div>
+                <div class="space-y-2">
+                    <p><strong>Birth Date:</strong> ${new Date(student.birthDate).toLocaleDateString()}</p>
+                    <p><strong>Address:</strong> ${student.address}</p>
+                    <p><strong>Registration Date:</strong> ${new Date(student.registrationDate).toLocaleDateString()}</p>
+                </div>
+            `;
+            
+            document.getElementById('academicSummary').innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600">${gpa}</div>
+                        <div class="text-gray-600">Current GPA</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">${enrollments.length}</div>
+                        <div class="text-gray-600">Enrolled Courses</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600">${grades.length}</div>
+                        <div class="text-gray-600">Completed Courses</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Photo handling functions
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Check file size (2MB limit)
+            if (file.size > 2 * 1024 * 1024) {
+                showMessage('Photo size must be less than 2MB', 'error');
+                return;
+            }
+            
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                showMessage('Please select a valid image file', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoData = e.target.result;
+                
+                // Update student data
+                currentUser.data.photo = photoData;
+                
+                // Update the student in systemData
+                const studentIndex = systemData.students.findIndex(s => s.id === currentUser.data.id);
+                if (studentIndex !== -1) {
+                    systemData.students[studentIndex].photo = photoData;
+                    saveData();
+                }
+                
+                // Update preview
+                document.getElementById('photoPreview').innerHTML = 
+                    `<img src="${photoData}" alt="Profile Photo" class="w-full h-full object-cover rounded-lg">`;
+                
+                showMessage('Photo uploaded successfully!', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removePhoto() {
+            if (confirm('Are you sure you want to remove your profile photo?')) {
+                // Update student data
+                currentUser.data.photo = null;
+                
+                // Update the student in systemData
+                const studentIndex = systemData.students.findIndex(s => s.id === currentUser.data.id);
+                if (studentIndex !== -1) {
+                    systemData.students[studentIndex].photo = null;
+                    saveData();
+                }
+                
+                // Update preview
+                document.getElementById('photoPreview').innerHTML = 
+                    '<span class="text-gray-500 text-xs text-center">No Photo</span>';
+                
+                showMessage('Photo removed successfully!', 'success');
+            }
+        }
+
+        function loadStudentCourses() {
+            const enrollments = systemData.enrollments.filter(e => e.studentId === currentUser.data.id);
+            const coursesHtml = enrollments.map(enrollment => {
+                const course = systemData.courses.find(c => c.id === enrollment.courseId);
+                if (!course) return '';
+                
+                const payments = systemData.payments.filter(p => p.studentId === currentUser.data.id && p.courseId === course.id);
+                const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+                const paymentStatus = totalPaid >= course.fee ? 'Completed' : totalPaid > 0 ? 'Partial' : 'Pending';
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-6 hover-lift">
+                        <h3 class="text-xl font-bold mb-2">${course.name}</h3>
+                        <p class="text-gray-600 mb-3">${course.description}</p>
+                        <div class="space-y-2 text-sm">
+                            <p><strong>Instructor:</strong> ${course.instructor}</p>
+                            <p><strong>Schedule:</strong> ${course.schedule}</p>
+                            <p><strong>Duration:</strong> ${course.duration} weeks</p>
+                            <p><strong>Fee:</strong> ${course.fee} AFN</p>
+                            <p><strong>Payment Status:</strong> 
+                                <span class="px-2 py-1 rounded text-xs status-${paymentStatus.toLowerCase()}">${paymentStatus}</span>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('studentCourses').innerHTML = coursesHtml || '<p class="text-gray-500 text-center col-span-full">No courses enrolled yet.</p>';
+        }
+
+        function loadStudentPayments() {
+            const payments = systemData.payments.filter(p => p.studentId === currentUser.data.id);
+            const enrollments = systemData.enrollments.filter(e => e.studentId === currentUser.data.id);
+            
+            let paymentHtml = '';
+            enrollments.forEach(enrollment => {
+                const course = systemData.courses.find(c => c.id === enrollment.courseId);
+                if (!course) return;
+                
+                const coursePayments = payments.filter(p => p.courseId === course.id);
+                const totalPaid = coursePayments.reduce((sum, p) => sum + p.amount, 0);
+                const remaining = course.fee - totalPaid;
+                const progress = (totalPaid / course.fee) * 100;
+                
+                paymentHtml += `
+                    <div class="bg-gray-50 rounded-xl p-6 mb-4">
+                        <h3 class="text-lg font-bold mb-3">${course.name}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-blue-600">${course.fee} AFN</div>
+                                <div class="text-sm text-gray-600">Total Fee</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-green-600">${totalPaid} AFN</div>
+                                <div class="text-sm text-gray-600">Paid</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-red-600">${remaining} AFN</div>
+                                <div class="text-sm text-gray-600">Remaining</div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Payment Progress</span>
+                                <span>${progress.toFixed(1)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="progress-bar h-2 rounded-full" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        ${coursePayments.length > 0 ? `
+                            <div class="space-y-2">
+                                <h4 class="font-semibold">Payment History:</h4>
+                                ${coursePayments.map(payment => `
+                                    <div class="flex justify-between items-center bg-white p-3 rounded">
+                                        <span>${new Date(payment.date).toLocaleDateString()} - ${payment.method}</span>
+                                        <span class="font-semibold">${payment.amount} AFN</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            document.getElementById('paymentStatus').innerHTML = paymentHtml || '<p class="text-gray-500 text-center">No payment records found.</p>';
+        }
+
+        function loadStudentGrades() {
+            const grades = systemData.grades.filter(g => g.studentId === currentUser.data.id);
+            
+            const gradesHtml = grades.map(grade => {
+                const course = systemData.courses.find(c => c.id === grade.courseId);
+                if (!course) return '';
+                
+                const finalGrade = (grade.midterm * 0.4) + (grade.final * 0.6);
+                const letterGrade = getLetterGrade(finalGrade);
+                const gpaPoints = calculateGPA(finalGrade);
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-6 mb-4">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold">${course.name}</h3>
+                                <p class="text-gray-600">${course.instructor}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold grade-${letterGrade.toLowerCase()} text-white px-3 py-1 rounded">${letterGrade}</div>
+                                <div class="text-sm text-gray-600 mt-1">${finalGrade.toFixed(1)}% (${gpaPoints.toFixed(1)} GPA)</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <div class="text-sm text-gray-600">Midterm (40%)</div>
+                                <div class="text-lg font-semibold">${grade.midterm}%</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-600">Final (60%)</div>
+                                <div class="text-lg font-semibold">${grade.final}%</div>
+                            </div>
+                        </div>
+                        ${grade.comment ? `
+                            <div class="bg-white p-3 rounded">
+                                <div class="text-sm text-gray-600 mb-1">Instructor Comment:</div>
+                                <div class="text-sm">${grade.comment}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('gradesSection').innerHTML = gradesHtml || '<p class="text-gray-500 text-center">No grades available yet.</p>';
+        }
+
+        // Admin Dashboard
+        function showAdminDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            showAdminSection('overview');
+            updateAdminStats();
+        }
+
+        function showAdminSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+            // Show selected section
+            document.getElementById('admin' + section.charAt(0).toUpperCase() + section.slice(1)).classList.remove('hidden');
+            
+            // Update navigation
+            document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600');
+            });
+            event.target.classList.add('border-blue-500', 'text-blue-600');
+            
+            // Load section data
+            switch(section) {
+                case 'students':
+                    loadAdminStudents();
+                    break;
+                case 'courses':
+                    loadAdminCourses();
+                    break;
+                case 'payments':
+                    loadAdminPayments();
+                    break;
+                case 'grades':
+                    loadAdminGrades();
+                    break;
+            }
+        }
+
+        function updateAdminStats() {
+            const totalStudents = systemData.students.length;
+            const activeCourses = systemData.courses.length;
+            const totalRevenue = systemData.payments.reduce((sum, p) => sum + p.amount, 0);
+            const pendingPayments = systemData.enrollments.filter(e => {
+                const course = systemData.courses.find(c => c.id === e.courseId);
+                const payments = systemData.payments.filter(p => p.studentId === e.studentId && p.courseId === e.courseId);
+                const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+                return course && totalPaid < course.fee;
+            }).length;
+            
+            document.getElementById('totalStudents').textContent = totalStudents;
+            document.getElementById('activeCourses').textContent = activeCourses;
+            document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString() + ' AFN';
+            document.getElementById('pendingPayments').textContent = pendingPayments;
+        }
+
+        function loadAdminStudents() {
+            const studentsHtml = systemData.students.map(student => {
+                const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+                const grades = systemData.grades.filter(g => g.studentId === student.id);
+                const gpa = grades.length > 0 ? (grades.reduce((sum, g) => sum + calculateGPA((g.midterm * 0.4) + (g.final * 0.6)), 0) / grades.length).toFixed(2) : '0.00';
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-6 mb-4 hover-lift">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold">${student.fullName}</h3>
+                                <p class="text-gray-600">ID: ${student.id} | ${student.email}</p>
+                                <p class="text-sm text-gray-500">GPA: ${gpa} | Courses: ${enrollments.length}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="editStudent('${student.id}')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover-lift">Edit</button>
+                                <button onclick="deleteStudent('${student.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover-lift">Delete</button>
+                                <button onclick="exportStudentProfileAdmin('${student.id}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover-lift">PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('studentsList').innerHTML = studentsHtml || '<p class="text-gray-500 text-center">No students found.</p>';
+        }
+
+        function showAddStudentModal() {
+            resetStudentForm();
+            showModal('studentRegisterModal');
+        }
+
+        function editStudent(studentId) {
+            const student = systemData.students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            editingStudentId = studentId;
+            
+            // Pre-fill the registration form with student data
+            document.getElementById('regFullName').value = student.fullName;
+            document.getElementById('regEmail').value = student.email;
+            document.getElementById('regPhone').value = student.phone;
+            document.getElementById('regBirthDate').value = student.birthDate;
+            document.getElementById('regAddress').value = student.address;
+            document.getElementById('regPassword').value = student.password;
+            
+            showModal('studentRegisterModal');
+        }
+
+        function deleteStudent(studentId) {
+            if (confirm('Are you sure you want to delete this student? This will also remove all their enrollments, payments, and grades.')) {
+                // Remove student and all related data
+                systemData.students = systemData.students.filter(s => s.id !== studentId);
+                systemData.enrollments = systemData.enrollments.filter(e => e.studentId !== studentId);
+                systemData.payments = systemData.payments.filter(p => p.studentId !== studentId);
+                systemData.grades = systemData.grades.filter(g => g.studentId !== studentId);
+                
+                saveData();
+                loadAdminStudents();
+                updateAdminStats();
+                showMessage('Student deleted successfully!', 'success');
+            }
+        }
+
+        async function exportStudentProfileAdmin(studentId) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const student = systemData.students.find(s => s.id === studentId);
+            const orgName = systemData.settings.title.toUpperCase();
+            
+            if (!student) return;
+            
+            // Create stylish header with gradient background
+            doc.setFillColor(59, 130, 246);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            // Add logo/title area
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text(orgName, 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Student Profile Report', 105, 30, { align: 'center' });
+            
+            // Reset text color
+            doc.setTextColor(0, 0, 0);
+            
+            // Student photo section
+            doc.setDrawColor(59, 130, 246);
+            doc.setLineWidth(2);
+            doc.rect(15, 50, 40, 50);
+            
+            if (student.photo) {
+                try {
+                    // Add actual student photo
+                    doc.addImage(student.photo, 'JPEG', 17, 52, 36, 46);
+                } catch (error) {
+                    // Fallback to placeholder if photo fails to load
+                    doc.setFontSize(10);
+                    doc.text('STUDENT', 35, 70, { align: 'center' });
+                    doc.text('PHOTO', 35, 80, { align: 'center' });
+                }
+            } else {
+                // Photo placeholder
+                doc.setFontSize(10);
+                doc.text('STUDENT', 35, 70, { align: 'center' });
+                doc.text('PHOTO', 35, 80, { align: 'center' });
+            }
+            
+            // Student Information Section
+            doc.setFillColor(245, 245, 245);
+            doc.rect(60, 50, 135, 50, 'F');
+            
+            doc.setFontSize(16);
+            doc.setTextColor(59, 130, 246);
+            doc.text('STUDENT INFORMATION', 65, 65);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Student ID: ${student.id}`, 65, 75);
+            doc.text(`Full Name: ${student.fullName}`, 65, 82);
+            doc.text(`Email: ${student.email}`, 65, 89);
+            doc.text(`Phone: ${student.phone}`, 65, 96);
+            
+            // Personal Details Section
+            doc.setFillColor(254, 249, 195);
+            doc.rect(15, 110, 180, 25, 'F');
+            
+            doc.setFontSize(16);
+            doc.setTextColor(217, 119, 6);
+            doc.text('PERSONAL DETAILS', 20, 125);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Birth Date: ${new Date(student.birthDate).toLocaleDateString()}`, 20, 135);
+            doc.text(`Registration Date: ${new Date(student.registrationDate).toLocaleDateString()}`, 110, 135);
+            doc.text(`Address: ${student.address}`, 20, 142);
+            
+            // Academic Details Section
+            const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+            const grades = systemData.grades.filter(g => g.studentId === student.id);
+            const gpa = grades.length > 0 ? (grades.reduce((sum, g) => sum + calculateGPA((g.midterm * 0.4) + (g.final * 0.6)), 0) / grades.length).toFixed(2) : '0.00';
+            
+            doc.setFillColor(240, 253, 244);
+            doc.rect(15, 145, 180, 30, 'F');
+            
+            doc.setFontSize(16);
+            doc.setTextColor(16, 185, 129);
+            doc.text('ACADEMIC SUMMARY', 20, 160);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Current GPA: ${gpa}`, 20, 170);
+            doc.text(`Enrolled Courses: ${enrollments.length}`, 100, 170);
+            doc.text(`Completed Courses: ${grades.length}`, 20, 177);
+            
+            // Payment Summary
+            const payments = systemData.payments.filter(p => p.studentId === student.id);
+            const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+            doc.text(`Total Payments: ${totalPaid.toLocaleString()} AFN`, 100, 177);
+            
+            // Courses Table
+            let yPos = 195;
+            doc.setFillColor(59, 130, 246);
+            doc.rect(15, yPos, 180, 15, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(12);
+            doc.text('ENROLLED COURSES', 20, yPos + 10);
+            
+            yPos += 20;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            
+            // Table headers
+            doc.setFillColor(245, 245, 245);
+            doc.rect(15, yPos, 180, 10, 'F');
+            doc.text('Course Name', 20, yPos + 7);
+            doc.text('Instructor', 80, yPos + 7);
+            doc.text('Grade', 140, yPos + 7);
+            doc.text('Status', 170, yPos + 7);
+            
+            yPos += 15;
+            
+            enrollments.forEach((enrollment, index) => {
+                const course = systemData.courses.find(c => c.id === enrollment.courseId);
+                const grade = grades.find(g => g.courseId === enrollment.courseId);
+                
+                if (course) {
+                    // Alternate row colors
+                    if (index % 2 === 0) {
+                        doc.setFillColor(250, 250, 250);
+                        doc.rect(15, yPos - 5, 180, 10, 'F');
+                    }
+                    
+                    doc.text(course.name.substring(0, 25), 20, yPos);
+                    doc.text(course.instructor.substring(0, 20), 80, yPos);
+                    
+                    if (grade) {
+                        const finalGrade = (grade.midterm * 0.4) + (grade.final * 0.6);
+                        doc.text(`${getLetterGrade(finalGrade)} (${finalGrade.toFixed(1)}%)`, 140, yPos);
+                        doc.text('Completed', 170, yPos);
+                    } else {
+                        doc.text('N/A', 140, yPos);
+                        doc.text('In Progress', 170, yPos);
+                    }
+                    yPos += 12;
+                }
+            });
+            
+            // Generate QR Code
+            const qrData = JSON.stringify({
+                studentId: student.id,
+                name: student.fullName,
+                email: student.email,
+                phone: student.phone,
+                gpa: gpa,
+                courses: enrollments.length,
+                totalPaid: totalPaid,
+                reportDate: new Date().toISOString(),
+                reportType: 'admin_student_profile'
+            });
+            
+            try {
+                const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+                    width: 80,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+                
+                // Add QR code to PDF
+                doc.addImage(qrCodeDataURL, 'PNG', 160, 50, 30, 30);
+                doc.setFontSize(8);
+                doc.text('Scan for verification', 175, 85, { align: 'center' });
+            } catch (error) {
+                console.error('QR Code generation failed:', error);
+            }
+            
+            // Footer
+            doc.setFillColor(59, 130, 246);
+            doc.rect(0, 280, 210, 17, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()} | ${systemData.settings.title} - Admin Report`, 105, 290, { align: 'center' });
+            
+            doc.save(`${student.fullName}_Profile.pdf`);
+        }
+
+        function loadAdminCourses() {
+            const coursesHtml = systemData.courses.map(course => {
+                const enrollments = systemData.enrollments.filter(e => e.courseId === course.id);
+                const grades = systemData.grades.filter(g => g.courseId === course.id);
+                const avgGrade = grades.length > 0 ? (grades.reduce((sum, g) => sum + ((g.midterm * 0.4) + (g.final * 0.6)), 0) / grades.length).toFixed(1) : 'N/A';
+                
+                return `
+                    <div class="bg-white rounded-2xl card-shadow p-6 hover-lift">
+                        <h3 class="text-xl font-bold mb-2">${course.name}</h3>
+                        <p class="text-gray-600 mb-3">${course.description}</p>
+                        <div class="space-y-2 text-sm mb-4">
+                            <p><strong>Instructor:</strong> ${course.instructor}</p>
+                            <p><strong>Schedule:</strong> ${course.schedule}</p>
+                            <p><strong>Fee:</strong> ${course.fee} AFN</p>
+                            <p><strong>Enrolled:</strong> ${enrollments.length}/${course.capacity}</p>
+                            <p><strong>Avg Grade:</strong> ${avgGrade}%</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editCourse('${course.id}')" class="flex-1 bg-blue-500 text-white py-2 rounded hover-lift">Edit</button>
+                            <button onclick="deleteCourse('${course.id}')" class="flex-1 bg-red-500 text-white py-2 rounded hover-lift">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('coursesList').innerHTML = coursesHtml || '<p class="text-gray-500 text-center col-span-full">No courses available.</p>';
+        }
+
+        function editCourse(courseId) {
+            const course = systemData.courses.find(c => c.id === courseId);
+            if (!course) return;
+            
+            editingCourseId = courseId;
+            
+            // Pre-fill the course form with course data
+            document.getElementById('courseName').value = course.name;
+            document.getElementById('courseDescription').value = course.description;
+            document.getElementById('courseInstructor').value = course.instructor;
+            document.getElementById('courseSchedule').value = course.schedule;
+            document.getElementById('courseCapacity').value = course.capacity;
+            document.getElementById('courseFee').value = course.fee;
+            document.getElementById('courseDuration').value = course.duration;
+            
+            showModal('addCourseModal');
+        }
+
+        function deleteCourse(courseId) {
+            if (confirm('Are you sure you want to delete this course? This will also remove all enrollments, payments, and grades for this course.')) {
+                // Remove course and all related data
+                systemData.courses = systemData.courses.filter(c => c.id !== courseId);
+                systemData.enrollments = systemData.enrollments.filter(e => e.courseId !== courseId);
+                systemData.payments = systemData.payments.filter(p => p.courseId !== courseId);
+                systemData.grades = systemData.grades.filter(g => g.courseId !== courseId);
+                
+                saveData();
+                loadAdminCourses();
+                updateAdminStats();
+                showMessage('Course deleted successfully!', 'success');
+            }
+        }
+
+        function loadAdminPayments() {
+            // Load students with payment overview
+            const studentsPaymentHtml = systemData.students.map(student => {
+                const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+                if (enrollments.length === 0) return '';
+                
+                let studentPaymentInfo = '';
+                enrollments.forEach(enrollment => {
+                    const course = systemData.courses.find(c => c.id === enrollment.courseId);
+                    if (!course) return;
+                    
+                    const payments = systemData.payments.filter(p => p.studentId === student.id && p.courseId === course.id);
+                    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+                    const remaining = course.fee - totalPaid;
+                    const status = totalPaid >= course.fee ? 'completed' : totalPaid > 0 ? 'partial' : 'pending';
+                    
+                    studentPaymentInfo += `
+                        <div class="flex justify-between items-center bg-white p-3 rounded mb-2">
+                            <div>
+                                <div class="font-semibold">${course.name}</div>
+                                <div class="text-sm text-gray-600">Fee: ${course.fee} AFN | Paid: ${totalPaid} AFN | Remaining: ${remaining} AFN</div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 rounded text-xs status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                                ${remaining > 0 ? `<button onclick="showPaymentModal('${student.id}', '${course.id}')" class="bg-green-500 text-white px-3 py-1 rounded text-xs hover-lift">Add Payment</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-4 mb-4">
+                        <h4 class="font-bold mb-3">${student.fullName} (ID: ${student.id})</h4>
+                        ${studentPaymentInfo}
+                    </div>
+                `;
+            }).filter(html => html !== '').join('');
+            
+            document.getElementById('studentsPaymentList').innerHTML = studentsPaymentHtml || '<p class="text-gray-500 text-center">No enrolled students found.</p>';
+            
+            // Load payment history
+            const paymentsHtml = systemData.payments.map(payment => {
+                const student = systemData.students.find(s => s.id === payment.studentId);
+                const course = systemData.courses.find(c => c.id === payment.courseId);
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-4 mb-3 flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold">${student ? student.fullName : 'Unknown'} - ${course ? course.name : 'Unknown'}</div>
+                            <div class="text-sm text-gray-600">${new Date(payment.date).toLocaleDateString()} | ${payment.method}</div>
+                            ${payment.notes ? `<div class="text-sm text-gray-500">${payment.notes}</div>` : ''}
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-green-600">${payment.amount} AFN</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('paymentsList').innerHTML = paymentsHtml || '<p class="text-gray-500 text-center">No payments recorded.</p>';
+        }
+
+        function showPaymentModal(studentId, courseId) {
+            const student = systemData.students.find(s => s.id === studentId);
+            const course = systemData.courses.find(c => c.id === courseId);
+            
+            if (!student || !course) return;
+            
+            document.getElementById('paymentStudentId').value = studentId;
+            document.getElementById('paymentCourseId').value = courseId;
+            document.getElementById('paymentStudentInfo').innerHTML = `
+                <div class="font-semibold">${student.fullName}</div>
+                <div class="text-sm text-gray-600">${course.name} - Fee: ${course.fee} AFN</div>
+            `;
+            
+            showModal('paymentModal');
+        }
+
+        function loadAdminGrades() {
+            // Load students for grading
+            const studentsGradingHtml = systemData.students.map(student => {
+                const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+                if (enrollments.length === 0) return '';
+                
+                let studentGradingInfo = '';
+                enrollments.forEach(enrollment => {
+                    const course = systemData.courses.find(c => c.id === enrollment.courseId);
+                    if (!course) return;
+                    
+                    const existingGrade = systemData.grades.find(g => g.studentId === student.id && g.courseId === course.id);
+                    
+                    studentGradingInfo += `
+                        <div class="flex justify-between items-center bg-white p-3 rounded mb-2">
+                            <div>
+                                <div class="font-semibold">${course.name}</div>
+                                <div class="text-sm text-gray-600">Instructor: ${course.instructor}</div>
+                                ${existingGrade ? `<div class="text-sm text-green-600">Grade: ${getLetterGrade((existingGrade.midterm * 0.4) + (existingGrade.final * 0.6))} (${((existingGrade.midterm * 0.4) + (existingGrade.final * 0.6)).toFixed(1)}%)</div>` : '<div class="text-sm text-red-600">No grade recorded</div>'}
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="showGradeModal('${student.id}', '${course.id}')" class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover-lift">${existingGrade ? 'Edit Grade' : 'Add Grade'}</button>
+                                ${existingGrade ? `<button onclick="generateCertificate('${student.id}', '${course.id}')" class="bg-green-500 text-white px-3 py-1 rounded text-xs hover-lift">Certificate</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-4 mb-4">
+                        <h4 class="font-bold mb-3">${student.fullName} (ID: ${student.id})</h4>
+                        ${studentGradingInfo}
+                    </div>
+                `;
+            }).filter(html => html !== '').join('');
+            
+            document.getElementById('studentsGradingList').innerHTML = studentsGradingHtml || '<p class="text-gray-500 text-center">No enrolled students found.</p>';
+            
+            // Load recorded grades
+            const gradesHtml = systemData.grades.map(grade => {
+                const student = systemData.students.find(s => s.id === grade.studentId);
+                const course = systemData.courses.find(c => c.id === grade.courseId);
+                const finalGrade = (grade.midterm * 0.4) + (grade.final * 0.6);
+                const letterGrade = getLetterGrade(finalGrade);
+                
+                return `
+                    <div class="bg-gray-50 rounded-xl p-4 mb-3">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-semibold">${student ? student.fullName : 'Unknown'}</div>
+                                <div class="text-sm text-gray-600">${course ? course.name : 'Unknown'}</div>
+                                <div class="text-sm text-gray-500">Midterm: ${grade.midterm}% | Final: ${grade.final}%</div>
+                                ${grade.comment ? `<div class="text-sm text-gray-500 mt-1">"${grade.comment}"</div>` : ''}
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xl font-bold grade-${letterGrade.toLowerCase()} text-white px-3 py-1 rounded">${letterGrade}</div>
+                                <div class="text-sm text-gray-600 mt-1">${finalGrade.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex space-x-2">
+                            <button onclick="showGradeModal('${grade.studentId}', '${grade.courseId}')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover-lift">Edit</button>
+                            <button onclick="generateCertificate('${grade.studentId}', '${grade.courseId}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover-lift">Certificate</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('gradesList').innerHTML = gradesHtml || '<p class="text-gray-500 text-center">No grades recorded.</p>';
+        }
+
+        // Course Management
+        function showAvailableCourses() {
+            const availableCourses = systemData.courses.filter(course => {
+                const enrollments = systemData.enrollments.filter(e => e.courseId === course.id);
+                const studentEnrolled = systemData.enrollments.some(e => e.courseId === course.id && e.studentId === currentUser.data.id);
+                return enrollments.length < course.capacity && !studentEnrolled;
+            });
+            
+            const coursesHtml = availableCourses.map(course => `
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-lg font-bold mb-2">${course.name}</h3>
+                    <p class="text-gray-600 mb-3">${course.description}</p>
+                    <div class="space-y-1 text-sm mb-4">
+                        <p><strong>Instructor:</strong> ${course.instructor}</p>
+                        <p><strong>Schedule:</strong> ${course.schedule}</p>
+                        <p><strong>Duration:</strong> ${course.duration} weeks</p>
+                        <p><strong>Fee:</strong> ${course.fee} AFN</p>
+                    </div>
+                    <button onclick="enrollInCourse('${course.id}')" class="w-full gradient-bg text-white py-2 rounded hover-lift">
+                        Enroll Now
+                    </button>
+                </div>
+            `).join('');
+            
+            document.getElementById('availableCoursesList').innerHTML = coursesHtml || '<p class="text-gray-500 text-center col-span-full">No available courses.</p>';
+            showModal('availableCoursesModal');
+        }
+
+        function enrollInCourse(courseId) {
+            const enrollment = {
+                id: generateId(),
+                studentId: currentUser.data.id,
+                courseId: courseId,
+                enrollmentDate: new Date().toISOString()
+            };
+            
+            systemData.enrollments.push(enrollment);
+            saveData();
+            closeModal('availableCoursesModal');
+            loadStudentCourses();
+            showMessage('Successfully enrolled in course!', 'success');
+        }
+
+        function showAddCourseModal() {
+            resetCourseForm();
+            showModal('addCourseModal');
+        }
+
+        function addCourse(event) {
+            event.preventDefault();
+            
+            if (editingCourseId) {
+                // Update existing course
+                const course = systemData.courses.find(c => c.id === editingCourseId);
+                if (course) {
+                    course.name = document.getElementById('courseName').value;
+                    course.description = document.getElementById('courseDescription').value;
+                    course.instructor = document.getElementById('courseInstructor').value;
+                    course.schedule = document.getElementById('courseSchedule').value;
+                    course.capacity = parseInt(document.getElementById('courseCapacity').value);
+                    course.fee = parseInt(document.getElementById('courseFee').value);
+                    course.duration = parseInt(document.getElementById('courseDuration').value);
+                    
+                    saveData();
+                    closeModal('addCourseModal');
+                    loadAdminCourses();
+                    showMessage('Course updated successfully!', 'success');
+                }
+            } else {
+                // Create new course
+                const course = {
+                    id: generateId(),
+                    name: document.getElementById('courseName').value,
+                    description: document.getElementById('courseDescription').value,
+                    instructor: document.getElementById('courseInstructor').value,
+                    schedule: document.getElementById('courseSchedule').value,
+                    capacity: parseInt(document.getElementById('courseCapacity').value),
+                    fee: parseInt(document.getElementById('courseFee').value),
+                    duration: parseInt(document.getElementById('courseDuration').value),
+                    createdDate: new Date().toISOString()
+                };
+                
+                systemData.courses.push(course);
+                saveData();
+                closeModal('addCourseModal');
+                loadAdminCourses();
+                updateAdminStats();
+                showMessage('Course added successfully!', 'success');
+            }
+        }
+
+        // Payment Management
+        function recordPayment(event) {
+            event.preventDefault();
+            const payment = {
+                id: generateId(),
+                studentId: document.getElementById('paymentStudentId').value,
+                courseId: document.getElementById('paymentCourseId').value,
+                amount: parseInt(document.getElementById('paymentAmount').value),
+                method: document.getElementById('paymentMethod').value,
+                notes: document.getElementById('paymentNotes').value,
+                date: new Date().toISOString()
+            };
+            
+            systemData.payments.push(payment);
+            saveData();
+            closeModal('paymentModal');
+            
+            if (currentUser.type === 'student') {
+                loadStudentPayments();
+            } else {
+                loadAdminPayments();
+                updateAdminStats();
+            }
+            
+            showMessage('Payment recorded successfully!', 'success');
+            
+            // Reset form
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('paymentNotes').value = '';
+        }
+
+        // Grade Management
+        function enterGrade(event) {
+            event.preventDefault();
+            const studentId = document.getElementById('gradeStudentId').value;
+            const courseId = document.getElementById('gradeCourseId').value;
+            
+            // Remove existing grade if any
+            systemData.grades = systemData.grades.filter(g => !(g.studentId === studentId && g.courseId === courseId));
+            
+            const grade = {
+                id: generateId(),
+                studentId: studentId,
+                courseId: courseId,
+                midterm: parseInt(document.getElementById('midtermGrade').value),
+                final: parseInt(document.getElementById('finalGrade').value),
+                comment: document.getElementById('instructorComment').value,
+                date: new Date().toISOString()
+            };
+            
+            systemData.grades.push(grade);
+            saveData();
+            closeModal('gradeModal');
+            
+            if (currentUser.type === 'student') {
+                loadStudentGrades();
+                loadStudentProfile();
+            } else {
+                loadAdminGrades();
+            }
+            
+            showMessage('Grades saved successfully!', 'success');
+            
+            // Reset form
+            document.getElementById('midtermGrade').value = '';
+            document.getElementById('finalGrade').value = '';
+            document.getElementById('instructorComment').value = '';
+        }
+
+        function showGradeModal(studentId, courseId) {
+            const student = systemData.students.find(s => s.id === studentId);
+            const course = systemData.courses.find(c => c.id === courseId);
+            const existingGrade = systemData.grades.find(g => g.studentId === studentId && g.courseId === courseId);
+            
+            document.getElementById('gradeStudentId').value = studentId;
+            document.getElementById('gradeCourseId').value = courseId;
+            document.getElementById('gradeStudentName').textContent = student ? student.fullName : 'Unknown';
+            document.getElementById('gradeCourseName').textContent = course ? course.name : 'Unknown';
+            
+            if (existingGrade) {
+                document.getElementById('midtermGrade').value = existingGrade.midterm;
+                document.getElementById('finalGrade').value = existingGrade.final;
+                document.getElementById('instructorComment').value = existingGrade.comment;
+            } else {
+                document.getElementById('midtermGrade').value = '';
+                document.getElementById('finalGrade').value = '';
+                document.getElementById('instructorComment').value = '';
+            }
+            
+            showModal('gradeModal');
+        }
+
+        // Admin Settings
+        function showAdminSettings() {
+            document.getElementById('settingsSystemTitle').value = systemData.settings.title;
+            document.getElementById('settingsUsername').value = systemData.settings.adminUsername;
+            document.getElementById('settingsPassword').value = systemData.settings.adminPassword;
+            document.getElementById('themeSelector').value = systemData.settings.theme;
+            showModal('adminSettingsModal');
+        }
+
+        function saveAdminSettings() {
+            systemData.settings.title = document.getElementById('settingsSystemTitle').value;
+            systemData.settings.adminUsername = document.getElementById('settingsUsername').value;
+            systemData.settings.adminPassword = document.getElementById('settingsPassword').value;
+            systemData.settings.theme = document.getElementById('themeSelector').value;
+            
+            saveData();
+            applyTheme();
+            updateSystemTitle();
+            closeModal('adminSettingsModal');
+            showMessage('Settings saved successfully!', 'success');
+        }
+
+        // PDF Export Functions
+        async function exportStudentPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const student = currentUser.data;
+            const orgName = systemData.settings.title.toUpperCase();
+            
+            // Create stylish header with gradient background
+            doc.setFillColor(59, 130, 246); // Blue gradient start
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            // Add logo/title area
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text(orgName, 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Student Profile Report', 105, 30, { align: 'center' });
+            
+            // Reset text color
+            doc.setTextColor(0, 0, 0);
+            
+            // Student photo section
+            doc.setDrawColor(59, 130, 246);
+            doc.setLineWidth(2);
+            doc.rect(15, 50, 40, 50);
+            
+            if (student.photo) {
+                try {
+                    // Add actual student photo
+                    doc.addImage(student.photo, 'JPEG', 17, 52, 36, 46);
+                } catch (error) {
+                    // Fallback to placeholder if photo fails to load
+                    doc.setFontSize(10);
+                    doc.text('STUDENT', 35, 70, { align: 'center' });
+                    doc.text('PHOTO', 35, 80, { align: 'center' });
+                }
+            } else {
+                // Photo placeholder
+                doc.setFontSize(10);
+                doc.text('STUDENT', 35, 70, { align: 'center' });
+                doc.text('PHOTO', 35, 80, { align: 'center' });
+            }
+            
+            // Student Information Section
+            doc.setFillColor(245, 245, 245);
+            doc.rect(60, 50, 135, 50, 'F');
+            
+            doc.setFontSize(16);
+            doc.setTextColor(59, 130, 246);
+            doc.text('STUDENT INFORMATION', 65, 65);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Student ID: ${student.id}`, 65, 75);
+            doc.text(`Full Name: ${student.fullName}`, 65, 82);
+            doc.text(`Email: ${student.email}`, 65, 89);
+            doc.text(`Phone: ${student.phone}`, 65, 96);
+            
+            // Academic Details Section
+            const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+            const grades = systemData.grades.filter(g => g.studentId === student.id);
+            const gpa = grades.length > 0 ? (grades.reduce((sum, g) => sum + calculateGPA((g.midterm * 0.4) + (g.final * 0.6)), 0) / grades.length).toFixed(2) : '0.00';
+            
+            doc.setFillColor(240, 253, 244);
+            doc.rect(15, 110, 180, 30, 'F');
+            
+            doc.setFontSize(16);
+            doc.setTextColor(16, 185, 129);
+            doc.text('ACADEMIC SUMMARY', 20, 125);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Current GPA: ${gpa}`, 20, 135);
+            doc.text(`Enrolled Courses: ${enrollments.length}`, 100, 135);
+            doc.text(`Completed Courses: ${grades.length}`, 20, 142);
+            doc.text(`Registration Date: ${new Date(student.registrationDate).toLocaleDateString()}`, 100, 142);
+            
+            // Courses Table
+            let yPos = 160;
+            doc.setFillColor(59, 130, 246);
+            doc.rect(15, yPos, 180, 15, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(12);
+            doc.text('ENROLLED COURSES', 20, yPos + 10);
+            
+            yPos += 20;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            
+            // Table headers
+            doc.setFillColor(245, 245, 245);
+            doc.rect(15, yPos, 180, 10, 'F');
+            doc.text('Course Name', 20, yPos + 7);
+            doc.text('Instructor', 80, yPos + 7);
+            doc.text('Grade', 140, yPos + 7);
+            doc.text('Status', 170, yPos + 7);
+            
+            yPos += 15;
+            
+            enrollments.forEach((enrollment, index) => {
+                const course = systemData.courses.find(c => c.id === enrollment.courseId);
+                const grade = grades.find(g => g.courseId === enrollment.courseId);
+                
+                if (course) {
+                    // Alternate row colors
+                    if (index % 2 === 0) {
+                        doc.setFillColor(250, 250, 250);
+                        doc.rect(15, yPos - 5, 180, 10, 'F');
+                    }
+                    
+                    doc.text(course.name.substring(0, 25), 20, yPos);
+                    doc.text(course.instructor.substring(0, 20), 80, yPos);
+                    
+                    if (grade) {
+                        const finalGrade = (grade.midterm * 0.4) + (grade.final * 0.6);
+                        doc.text(`${getLetterGrade(finalGrade)} (${finalGrade.toFixed(1)}%)`, 140, yPos);
+                        doc.text('Completed', 170, yPos);
+                    } else {
+                        doc.text('N/A', 140, yPos);
+                        doc.text('In Progress', 170, yPos);
+                    }
+                    yPos += 12;
+                }
+            });
+            
+            // Generate QR Code
+            const qrData = JSON.stringify({
+                studentId: student.id,
+                name: student.fullName,
+                email: student.email,
+                gpa: gpa,
+                courses: enrollments.length,
+                reportDate: new Date().toISOString()
+            });
+            
+            try {
+                const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+                    width: 80,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+                
+                // Add QR code to PDF
+                doc.addImage(qrCodeDataURL, 'PNG', 160, 50, 30, 30);
+                doc.setFontSize(8);
+                doc.text('Scan for verification', 175, 85, { align: 'center' });
+            } catch (error) {
+                console.error('QR Code generation failed:', error);
+            }
+            
+            // Footer
+            doc.setFillColor(59, 130, 246);
+            doc.rect(0, 280, 210, 17, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()} | ${systemData.settings.title}`, 105, 290, { align: 'center' });
+            
+            doc.save(`${student.fullName}_Profile.pdf`);
+        }
+
+        async function generateCertificate(studentId, courseId) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            const student = systemData.students.find(s => s.id === studentId);
+            const course = systemData.courses.find(c => c.id === courseId);
+            const grade = systemData.grades.find(g => g.studentId === studentId && g.courseId === courseId);
+            const orgName = systemData.settings.title.toUpperCase();
+            
+            if (!student || !course || !grade) return;
+            
+            const finalGrade = (grade.midterm * 0.4) + (grade.final * 0.6);
+            const letterGrade = getLetterGrade(finalGrade);
+            
+            // Elegant border design
+            doc.setDrawColor(184, 134, 11); // Gold color
+            doc.setLineWidth(3);
+            doc.rect(10, 10, 277, 190); // Outer border
+            doc.setLineWidth(1);
+            doc.rect(15, 15, 267, 180); // Inner border
+            
+            // Decorative corners
+            doc.setFillColor(184, 134, 11);
+            doc.circle(25, 25, 8, 'F');
+            doc.circle(272, 25, 8, 'F');
+            doc.circle(25, 185, 8, 'F');
+            doc.circle(272, 185, 8, 'F');
+            
+            // Header with gradient background
+            doc.setFillColor(59, 130, 246);
+            doc.rect(20, 20, 257, 35, 'F');
+            
+            // Institution name
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(28);
+            doc.text(orgName, 148.5, 35, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('INSTITUTE OF EXCELLENCE', 148.5, 45, { align: 'center' });
+            
+            // Certificate title
+            doc.setTextColor(184, 134, 11);
+            doc.setFontSize(36);
+            doc.text('CERTIFICATE OF COMPLETION', 148.5, 75, { align: 'center' });
+            
+            // Decorative line
+            doc.setDrawColor(184, 134, 11);
+            doc.setLineWidth(2);
+            doc.line(50, 85, 247, 85);
+            
+            // Certificate text
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(16);
+            doc.text('This is to certify that', 148.5, 105, { align: 'center' });
+            
+            // Student name with underline
+            doc.setFontSize(28);
+            doc.setTextColor(59, 130, 246);
+            doc.text(student.fullName, 148.5, 125, { align: 'center' });
+            doc.setDrawColor(59, 130, 246);
+            doc.setLineWidth(1);
+            const nameWidth = doc.getTextWidth(student.fullName);
+            doc.line(148.5 - nameWidth/2, 130, 148.5 + nameWidth/2, 130);
+            
+            // Course completion text
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(16);
+            doc.text('has successfully completed the course', 148.5, 145, { align: 'center' });
+            
+            // Course name
+            doc.setFontSize(22);
+            doc.setTextColor(16, 185, 129);
+            doc.text(course.name, 148.5, 160, { align: 'center' });
+            
+            // Grade and details
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14);
+            doc.text(`with a grade of ${letterGrade} (${finalGrade.toFixed(1)}%)`, 148.5, 175, { align: 'center' });
+            
+            // Bottom section with details
+            doc.setFillColor(245, 245, 245);
+            doc.rect(20, 185, 257, 25, 'F');
+            
+            doc.setFontSize(12);
+            doc.text(`Instructor: ${course.instructor}`, 30, 195);
+            doc.text(`Course Duration: ${course.duration} weeks`, 30, 202);
+            doc.text(`Completion Date: ${new Date().toLocaleDateString()}`, 180, 195);
+            doc.text(`Student ID: ${student.id}`, 180, 202);
+            
+            // Generate QR Code for certificate verification
+            const qrData = JSON.stringify({
+                certificateId: `CERT-${student.id}-${course.id}-${Date.now()}`,
+                studentId: student.id,
+                studentName: student.fullName,
+                courseId: course.id,
+                courseName: course.name,
+                instructor: course.instructor,
+                grade: letterGrade,
+                percentage: finalGrade.toFixed(1),
+                completionDate: new Date().toISOString(),
+                issueDate: new Date().toISOString(),
+                verificationUrl: `https://atlas-cms.verify/${student.id}/${course.id}`
+            });
+            
+            try {
+                const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+                    width: 100,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+                
+                // Add QR code to certificate
+                doc.addImage(qrCodeDataURL, 'PNG', 240, 60, 30, 30);
+                doc.setFontSize(8);
+                doc.text('Scan to verify', 255, 95, { align: 'center' });
+                doc.text('certificate', 255, 100, { align: 'center' });
+            } catch (error) {
+                console.error('QR Code generation failed:', error);
+            }
+            
+            // Signature lines
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.line(50, 175, 120, 175);
+            doc.line(177, 175, 247, 175);
+            
+            doc.setFontSize(10);
+            doc.text('Director Signature', 85, 182, { align: 'center' });
+            doc.text('Instructor Signature', 212, 182, { align: 'center' });
+            
+            // Student photo on certificate (top left)
+            if (student.photo) {
+                try {
+                    doc.setDrawColor(184, 134, 11);
+                    doc.setLineWidth(2);
+                    doc.rect(30, 60, 30, 40);
+                    doc.addImage(student.photo, 'JPEG', 32, 62, 26, 36);
+                } catch (error) {
+                    console.error('Failed to add photo to certificate:', error);
+                }
+            }
+            
+            // Seal placeholder
+            doc.setDrawColor(220, 38, 127);
+            doc.setLineWidth(2);
+            doc.circle(60, 140, 15);
+            doc.setFontSize(8);
+            doc.text('OFFICIAL', 60, 137, { align: 'center' });
+            doc.text('SEAL', 60, 143, { align: 'center' });
+            
+            doc.save(`${student.fullName}_${course.name}_Certificate.pdf`);
+        }
+
+        // Data Management
+        async function exportData(type, format) {
+            let data, filename;
+            
+            switch(type) {
+                case 'students':
+                    data = systemData.students;
+                    filename = 'students_export';
+                    break;
+                case 'courses':
+                    data = systemData.courses;
+                    filename = 'courses_export';
+                    break;
+                default:
+                    data = systemData;
+                    filename = 'full_export';
+            }
+            
+            if (format === 'json') {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filename}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } else if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Stylish header
+                doc.setFillColor(59, 130, 246);
+                doc.rect(0, 0, 210, 40, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(24);
+                doc.text(systemData.settings.title.toUpperCase(), 105, 20, { align: 'center' });
+                doc.setFontSize(14);
+                doc.text(`${type.charAt(0).toUpperCase() + type.slice(1)} Export Report`, 105, 30, { align: 'center' });
+                
+                // Reset text color
+                doc.setTextColor(0, 0, 0);
+                
+                // Summary section
+                doc.setFillColor(245, 245, 245);
+                doc.rect(15, 50, 180, 25, 'F');
+                
+                doc.setFontSize(16);
+                doc.setTextColor(59, 130, 246);
+                doc.text('EXPORT SUMMARY', 20, 65);
+                
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(11);
+                doc.text(`Total Records: ${data.length}`, 20, 75);
+                doc.text(`Export Date: ${new Date().toLocaleDateString()}`, 100, 75);
+                doc.text(`Export Time: ${new Date().toLocaleTimeString()}`, 20, 82);
+                doc.text(`Report Type: ${type.toUpperCase()}`, 100, 82);
+                
+                let yPos = 95;
+                
+                if (type === 'students') {
+                    // Students table header
+                    doc.setFillColor(59, 130, 246);
+                    doc.rect(15, yPos, 180, 15, 'F');
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(12);
+                    doc.text('STUDENTS LIST', 20, yPos + 10);
+                    
+                    yPos += 20;
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    
+                    // Table headers
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(15, yPos, 180, 10, 'F');
+                    doc.text('ID', 20, yPos + 7);
+                    doc.text('Full Name', 40, yPos + 7);
+                    doc.text('Email', 100, yPos + 7);
+                    doc.text('Phone', 150, yPos + 7);
+                    
+                    yPos += 15;
+                    
+                    data.forEach((student, index) => {
+                        if (yPos > 250) {
+                            doc.addPage();
+                            yPos = 30;
+                        }
+                        
+                        // Alternate row colors
+                        if (index % 2 === 0) {
+                            doc.setFillColor(250, 250, 250);
+                            doc.rect(15, yPos - 5, 180, 12, 'F');
+                        }
+                        
+                        doc.text(student.id, 20, yPos);
+                        doc.text(student.fullName.substring(0, 20), 40, yPos);
+                        doc.text(student.email.substring(0, 25), 100, yPos);
+                        doc.text(student.phone, 150, yPos);
+                        
+                        // Additional details
+                        const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+                        const grades = systemData.grades.filter(g => g.studentId === student.id);
+                        const gpa = grades.length > 0 ? (grades.reduce((sum, g) => sum + calculateGPA((g.midterm * 0.4) + (g.final * 0.6)), 0) / grades.length).toFixed(2) : '0.00';
+                        
+                        doc.setFontSize(8);
+                        doc.text(`GPA: ${gpa} | Courses: ${enrollments.length}`, 20, yPos + 7);
+                        doc.setFontSize(10);
+                        
+                        yPos += 15;
+                    });
+                    
+                } else if (type === 'courses') {
+                    // Courses table header
+                    doc.setFillColor(59, 130, 246);
+                    doc.rect(15, yPos, 180, 15, 'F');
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(12);
+                    doc.text('COURSES LIST', 20, yPos + 10);
+                    
+                    yPos += 20;
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    
+                    // Table headers
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(15, yPos, 180, 10, 'F');
+                    doc.text('Course Name', 20, yPos + 7);
+                    doc.text('Instructor', 80, yPos + 7);
+                    doc.text('Fee (AFN)', 130, yPos + 7);
+                    doc.text('Enrolled', 160, yPos + 7);
+                    
+                    yPos += 15;
+                    
+                    data.forEach((course, index) => {
+                        if (yPos > 250) {
+                            doc.addPage();
+                            yPos = 30;
+                        }
+                        
+                        // Alternate row colors
+                        if (index % 2 === 0) {
+                            doc.setFillColor(250, 250, 250);
+                            doc.rect(15, yPos - 5, 180, 15, 'F');
+                        }
+                        
+                        const enrollments = systemData.enrollments.filter(e => e.courseId === course.id);
+                        
+                        doc.text(course.name.substring(0, 25), 20, yPos);
+                        doc.text(course.instructor.substring(0, 20), 80, yPos);
+                        doc.text(course.fee.toLocaleString(), 130, yPos);
+                        doc.text(`${enrollments.length}/${course.capacity}`, 160, yPos);
+                        
+                        doc.setFontSize(8);
+                        doc.text(`Duration: ${course.duration} weeks | Schedule: ${course.schedule}`, 20, yPos + 7);
+                        doc.setFontSize(10);
+                        
+                        yPos += 18;
+                    });
+                }
+                
+                // Generate QR Code for export verification
+                const qrData = JSON.stringify({
+                    exportType: type,
+                    recordCount: data.length,
+                    exportDate: new Date().toISOString(),
+                    systemName: systemData.settings.title,
+                    checksum: btoa(JSON.stringify(data)).substring(0, 20)
+                });
+                
+                try {
+                    const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+                        width: 80,
+                        margin: 1,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        }
+                    });
+                    
+                    // Add QR code to first page
+                    doc.addImage(qrCodeDataURL, 'PNG', 160, 50, 30, 30);
+                    doc.setFontSize(8);
+                    doc.text('Export verification', 175, 85, { align: 'center' });
+                } catch (error) {
+                    console.error('QR Code generation failed:', error);
+                }
+                
+                // Footer on each page
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFillColor(59, 130, 246);
+                    doc.rect(0, 280, 210, 17, 'F');
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(10);
+                    doc.text(`Page ${i} of ${pageCount} | Generated: ${new Date().toLocaleDateString()} | ${systemData.settings.title}`, 105, 290, { align: 'center' });
+                }
+                
+                doc.save(`${filename}.pdf`);
+            }
+            
+            showMessage(`${type} exported successfully!`, 'success');
+        }
+
+        function importData() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showMessage('Please select a file to import', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // Validate and merge data
+                    if (importedData.students) systemData.students = [...systemData.students, ...importedData.students];
+                    if (importedData.courses) systemData.courses = [...systemData.courses, ...importedData.courses];
+                    if (importedData.payments) systemData.payments = [...systemData.payments, ...importedData.payments];
+                    if (importedData.grades) systemData.grades = [...systemData.grades, ...importedData.grades];
+                    if (importedData.enrollments) systemData.enrollments = [...systemData.enrollments, ...importedData.enrollments];
+                    
+                    saveData();
+                    updateAdminStats();
+                    showMessage('Data imported successfully!', 'success');
+                } catch (error) {
+                    showMessage('Invalid file format', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function createBackup() {
+            const backup = {
+                ...systemData,
+                backupDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `atlas_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showMessage('Backup created successfully!', 'success');
+        }
+
+        function showResetConfirm() {
+            const password = prompt('Enter admin password to reset all data:');
+            if (password === systemData.settings.adminPassword) {
+                if (confirm('Are you sure you want to reset ALL data? This cannot be undone!')) {
+                    systemData.students = [];
+                    systemData.courses = [];
+                    systemData.payments = [];
+                    systemData.grades = [];
+                    systemData.enrollments = [];
+                    saveData();
+                    updateAdminStats();
+                    showMessage('All data has been reset!', 'success');
+                }
+            } else {
+                showMessage('Incorrect password!', 'error');
+            }
+        }
+
+        // Report Functions
+        async function generateReport(type) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Stylish header
+            doc.setFillColor(59, 130, 246);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text(systemData.settings.title.toUpperCase(), 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text(`${type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ')} Report`, 105, 30, { align: 'center' });
+            
+            // Reset text color
+            doc.setTextColor(0, 0, 0);
+            
+            // Report info section
+            doc.setFillColor(245, 245, 245);
+            doc.rect(15, 50, 180, 25, 'F');
+            
+            doc.setFontSize(16);
+            doc.setTextColor(59, 130, 246);
+            doc.text('REPORT INFORMATION', 20, 65);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Report Type: ${type.toUpperCase().replace('-', ' ')}`, 20, 75);
+            doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 110, 75);
+            doc.text(`Period: ${reportRange.toUpperCase()}`, 20, 82);
+            doc.text(`Total Records: ${getReportDataCount(type)}`, 110, 82);
+            
+            let yPos = 95;
+            
+            switch(type) {
+                case 'enrollment':
+                    // Enrollment header
+                    doc.setFillColor(16, 185, 129);
+                    doc.rect(15, yPos, 180, 15, 'F');
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(12);
+                    doc.text('ENROLLMENT STATISTICS', 20, yPos + 10);
+                    
+                    yPos += 20;
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    
+                    // Table headers
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(15, yPos, 180, 10, 'F');
+                    doc.text('Course Name', 20, yPos + 7);
+                    doc.text('Enrolled', 100, yPos + 7);
+                    doc.text('Capacity', 130, yPos + 7);
+                    doc.text('Utilization', 160, yPos + 7);
+                    
+                    yPos += 15;
+                    
+                    systemData.courses.forEach((course, index) => {
+                        const enrollments = systemData.enrollments.filter(e => e.courseId === course.id);
+                        const utilization = ((enrollments.length / course.capacity) * 100).toFixed(1);
+                        
+                        if (index % 2 === 0) {
+                            doc.setFillColor(250, 250, 250);
+                            doc.rect(15, yPos - 5, 180, 12, 'F');
+                        }
+                        
+                        doc.text(course.name.substring(0, 30), 20, yPos);
+                        doc.text(enrollments.length.toString(), 100, yPos);
+                        doc.text(course.capacity.toString(), 130, yPos);
+                        doc.text(`${utilization}%`, 160, yPos);
+                        yPos += 12;
+                    });
+                    break;
+                    
+                case 'revenue':
+                    const totalRevenue = systemData.payments.reduce((sum, p) => sum + p.amount, 0);
+                    
+                    // Revenue summary
+                    doc.setFillColor(245, 158, 11);
+                    doc.rect(15, yPos, 180, 20, 'F');
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(16);
+                    doc.text(`TOTAL REVENUE: ${totalRevenue.toLocaleString()} AFN`, 20, yPos + 13);
+                    
+                    yPos += 30;
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    
+                    // Course revenue table
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(15, yPos, 180, 10, 'F');
+                    doc.text('Course Name', 20, yPos + 7);
+                    doc.text('Revenue (AFN)', 100, yPos + 7);
+                    doc.text('Payments', 150, yPos + 7);
+                    
+                    yPos += 15;
+                    
+                    systemData.courses.forEach((course, index) => {
+                        const coursePayments = systemData.payments.filter(p => p.courseId === course.id);
+                        const courseRevenue = coursePayments.reduce((sum, p) => sum + p.amount, 0);
+                        
+                        if (index % 2 === 0) {
+                            doc.setFillColor(250, 250, 250);
+                            doc.rect(15, yPos - 5, 180, 12, 'F');
+                        }
+                        
+                        doc.text(course.name.substring(0, 30), 20, yPos);
+                        doc.text(courseRevenue.toLocaleString(), 100, yPos);
+                        doc.text(coursePayments.length.toString(), 150, yPos);
+                        yPos += 12;
+                    });
+                    break;
+                    
+                case 'performance':
+                    // Performance header
+                    doc.setFillColor(139, 92, 246);
+                    doc.rect(15, yPos, 180, 15, 'F');
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(12);
+                    doc.text('COURSE PERFORMANCE ANALYSIS', 20, yPos + 10);
+                    
+                    yPos += 20;
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    
+                    // Performance table
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(15, yPos, 180, 10, 'F');
+                    doc.text('Course Name', 20, yPos + 7);
+                    doc.text('Avg Grade', 100, yPos + 7);
+                    doc.text('Students', 130, yPos + 7);
+                    doc.text('Pass Rate', 160, yPos + 7);
+                    
+                    yPos += 15;
+                    
+                    systemData.courses.forEach((course, index) => {
+                        const grades = systemData.grades.filter(g => g.courseId === course.id);
+                        if (grades.length > 0) {
+                            const avgGrade = grades.reduce((sum, g) => sum + ((g.midterm * 0.4) + (g.final * 0.6)), 0) / grades.length;
+                            const passRate = (grades.filter(g => ((g.midterm * 0.4) + (g.final * 0.6)) >= 60).length / grades.length * 100).toFixed(1);
+                            
+                            if (index % 2 === 0) {
+                                doc.setFillColor(250, 250, 250);
+                                doc.rect(15, yPos - 5, 180, 12, 'F');
+                            }
+                            
+                            doc.text(course.name.substring(0, 30), 20, yPos);
+                            doc.text(`${avgGrade.toFixed(1)}%`, 100, yPos);
+                            doc.text(grades.length.toString(), 130, yPos);
+                            doc.text(`${passRate}%`, 160, yPos);
+                            yPos += 12;
+                        }
+                    });
+                    break;
+                    
+                case 'student-progress':
+                    // Student progress header
+                    doc.setFillColor(236, 72, 153);
+                    doc.rect(15, yPos, 180, 15, 'F');
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(12);
+                    doc.text('STUDENT PROGRESS REPORT', 20, yPos + 10);
+                    
+                    yPos += 20;
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    
+                    // Student progress table
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(15, yPos, 180, 10, 'F');
+                    doc.text('Student Name', 20, yPos + 7);
+                    doc.text('GPA', 100, yPos + 7);
+                    doc.text('Courses', 130, yPos + 7);
+                    doc.text('Status', 160, yPos + 7);
+                    
+                    yPos += 15;
+                    
+                    systemData.students.forEach((student, index) => {
+                        const grades = systemData.grades.filter(g => g.studentId === student.id);
+                        const enrollments = systemData.enrollments.filter(e => e.studentId === student.id);
+                        
+                        if (grades.length > 0) {
+                            const gpa = grades.reduce((sum, g) => sum + calculateGPA((g.midterm * 0.4) + (g.final * 0.6)), 0) / grades.length;
+                            const status = gpa >= 3.0 ? 'Excellent' : gpa >= 2.0 ? 'Good' : 'Needs Improvement';
+                            
+                            if (index % 2 === 0) {
+                                doc.setFillColor(250, 250, 250);
+                                doc.rect(15, yPos - 5, 180, 12, 'F');
+                            }
+                            
+                            doc.text(student.fullName.substring(0, 25), 20, yPos);
+                            doc.text(gpa.toFixed(2), 100, yPos);
+                            doc.text(`${grades.length}/${enrollments.length}`, 130, yPos);
+                            doc.text(status, 160, yPos);
+                            yPos += 12;
+                        }
+                    });
+                    break;
+                    
+                case 'financial':
+                    const totalPaid = systemData.payments.reduce((sum, p) => sum + p.amount, 0);
+                    const totalFees = systemData.enrollments.reduce((sum, e) => {
+                        const course = systemData.courses.find(c => c.id === e.courseId);
+                        return sum + (course ? course.fee : 0);
+                    }, 0);
+                    const outstanding = totalFees - totalPaid;
+                    const collectionRate = ((totalPaid / totalFees) * 100).toFixed(1);
+                    
+                    // Financial summary
+                    doc.setFillColor(220, 38, 127);
+                    doc.rect(15, yPos, 180, 40, 'F');
+                    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(14);
+                    doc.text('FINANCIAL SUMMARY', 20, yPos + 15);
+                    doc.setFontSize(11);
+                    doc.text(`Total Fees: ${totalFees.toLocaleString()} AFN`, 20, yPos + 25);
+                    doc.text(`Total Collected: ${totalPaid.toLocaleString()} AFN`, 110, yPos + 25);
+                    doc.text(`Outstanding: ${outstanding.toLocaleString()} AFN`, 20, yPos + 35);
+                    doc.text(`Collection Rate: ${collectionRate}%`, 110, yPos + 35);
+                    
+                    yPos += 50;
+                    break;
+            }
+            
+            // Generate QR Code for report verification
+            const qrData = JSON.stringify({
+                reportType: type,
+                generatedDate: new Date().toISOString(),
+                period: reportRange,
+                recordCount: getReportDataCount(type),
+                systemName: systemData.settings.title,
+                reportId: `RPT-${type.toUpperCase()}-${Date.now()}`
+            });
+            
+            try {
+                const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+                    width: 80,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+                
+                // Add QR code to report
+                doc.addImage(qrCodeDataURL, 'PNG', 160, 50, 30, 30);
+                doc.setFontSize(8);
+                doc.text('Report verification', 175, 85, { align: 'center' });
+            } catch (error) {
+                console.error('QR Code generation failed:', error);
+            }
+            
+            // Footer
+            doc.setFillColor(59, 130, 246);
+            doc.rect(0, 280, 210, 17, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text(`Generated: ${new Date().toLocaleDateString()} | ${systemData.settings.title} | Report ID: RPT-${type.toUpperCase()}-${Date.now()}`, 105, 290, { align: 'center' });
+            
+            doc.save(`${type}_report_${new Date().toISOString().split('T')[0]}.pdf`);
+            
+            // Also display in the UI
+            document.getElementById('generatedReports').innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-bold text-green-800">${type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ')} Report Generated</h4>
+                    <p class="text-green-600">Professional report with QR code verification has been downloaded as PDF.</p>
+                    <p class="text-sm text-green-500">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+                </div>
+            `;
+            
+            showMessage(`${type} report generated and downloaded!`, 'success');
+        }
+        
+        function getReportDataCount(type) {
+            switch(type) {
+                case 'enrollment': return systemData.enrollments.length;
+                case 'revenue': return systemData.payments.length;
+                case 'performance': return systemData.grades.length;
+                case 'student-progress': return systemData.students.length;
+                case 'financial': return systemData.payments.length;
+                default: return 0;
+            }
+        }
+
+        function setReportRange(range) {
+            reportRange = range;
+            showMessage(`Report range set to: ${range}`, 'success');
+        }
+
+        // Utility Functions
+        function generateStudentId() {
+            let id;
+            do {
+                id = Math.floor(1000 + Math.random() * 9000).toString();
+            } while (systemData.students.some(s => s.id === id));
+            return id;
+        }
+
+        function generateId() {
+            return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        }
+
+        function calculateGPA(percentage) {
+            if (percentage >= 90) return 4.0;
+            if (percentage >= 80) return 3.0;
+            if (percentage >= 70) return 2.0;
+            if (percentage >= 60) return 1.0;
+            return 0.0;
+        }
+
+        function getLetterGrade(percentage) {
+            if (percentage >= 90) return 'A';
+            if (percentage >= 80) return 'B';
+            if (percentage >= 70) return 'C';
+            if (percentage >= 60) return 'D';
+            return 'F';
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-4 rounded-lg mb-2 animate-slide ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-blue-500 text-white'
+            }`;
+            messageDiv.textContent = message;
+            
+            container.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Filter Functions
+        function filterStudents() {
+            const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+            const courseFilter = document.getElementById('courseFilter').value;
+            const paymentFilter = document.getElementById('paymentFilter').value;
+            const gradeFilter = document.getElementById('gradeFilter').value;
+            
+            // Implementation would filter the students list based on criteria
+            loadAdminStudents(); // Simplified for demo
+        }
+
+        // Initialize the system when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initSystem();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971fb03001573f4d',t:'MTc1NTY2OTgxNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
